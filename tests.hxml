@@ -1,0 +1,11 @@
+-cp src
+-cp tests
+
+-lib capsule
+-lib medic
+
+-main Run
+-D analyzer-optimize
+-D debug
+
+-js dist/test.js

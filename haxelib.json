@@ -1,0 +1,11 @@
+{
+    "name": "architect",
+    "contributors": ["wartman"],
+    "classPath": "src",
+    "dependencies": {
+        "capsule": ""
+    },
+    "license": "MIT",
+    "version": "0.0.1",
+    "releasenote": "Alpha"
+}
