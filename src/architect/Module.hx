@@ -3,9 +3,10 @@ package architect;
 #if !macro
 
 import capsule.Container;
+import capsule.ServiceProvider;
 
 @:autoBuild(architect.Module.build())
-interface Module {
+interface Module extends ServiceProvider {
   public function __exportInto(child:Container):Void;
   public function build():Container;
 }
@@ -58,6 +59,26 @@ class Module {
     var imports:Array<Expr> = [];
     var providers:Array<Expr> = [];
     var exports:Array<Expr> = [];
+    var hasNew:Bool = false;
+    var hasRegister:Bool = false;
+
+    for (f in fields) switch f.kind {
+      case FFun(_) if (f.name == 'new'): hasNew = true;
+      case FFun(_) if (f.name == 'register'): hasRegister = true;
+      default:
+    }
+
+    if (hasNew == false) {
+      fields.push((macro class {
+        public function new() {}
+      }).fields[0]);
+    }
+
+    if (hasRegister == false) {
+      fields.push((macro class {
+        public function register(container:capsule.Container) {}
+      }).fields[0]);
+    }
 
     for (param in params) switch param {
 
@@ -72,6 +93,7 @@ class Module {
 
       case macro providers = ${e}:
         function add(decl:Expr, tag:Expr) {
+          // todo: this needs to be rethought
           if (Context.unify(Context.typeof(decl), Context.getType('capsule.ServiceProvider'))) {
             providers.push(macro @:pos(decl.pos) container.use(${decl}));
           } else {
@@ -112,9 +134,6 @@ class Module {
     return fields.concat((macro class {
     
       var __c:capsule.Container;
-
-      // todo: allow users to create their own 'new'
-      public function new() {}
       
       public function __exportInto(child:capsule.Container) {
         var self = build();
@@ -124,6 +143,7 @@ class Module {
       public function build() {
         if (__c != null) return __c;
         var container = new capsule.Container();
+        container.useServiceProvider(this);
         $b{providers};
         $b{imports};
         __c = container;

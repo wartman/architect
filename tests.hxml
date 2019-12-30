@@ -6,6 +6,6 @@
 
 -main Run
 -D analyzer-optimize
--D debug
+# -D debug
 
 -js dist/test.js

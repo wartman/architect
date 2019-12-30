@@ -32,4 +32,10 @@ class ModuleTest {
     container.get(String, 'foo').equals('foo');
   }
 
+  @test('Modules act like service providers')
+  public function testRegister() {
+    var module = new ModuleAsServiceProvider('foo');
+    module.build().get(String, 'foo').equals('foo');
+  }
+
 }
