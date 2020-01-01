@@ -4,7 +4,7 @@ import architect.Module;
 import services.FooService;
 
 @:module(
-  providers = [ FooService ],
+  mappings = [ FooService ],
   exports = [ FooService ]
 )
 class SimpleModule implements Module {}

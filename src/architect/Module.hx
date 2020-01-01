@@ -6,7 +6,7 @@ import capsule.Container;
 import capsule.ServiceProvider;
 
 @:autoBuild(architect.Module.build())
-interface Module extends ServiceProvider {
+interface Module {
   public function __exportInto(child:Container):Void;
   public function build():Container;
 }
@@ -57,26 +57,18 @@ class Module {
     }
 
     var imports:Array<Expr> = [];
-    var providers:Array<Expr> = [];
     var exports:Array<Expr> = [];
+    var mappings:Array<Expr> = [];
     var hasNew:Bool = false;
-    var hasRegister:Bool = false;
 
     for (f in fields) switch f.kind {
       case FFun(_) if (f.name == 'new'): hasNew = true;
-      case FFun(_) if (f.name == 'register'): hasRegister = true;
       default:
     }
 
     if (hasNew == false) {
       fields.push((macro class {
         public function new() {}
-      }).fields[0]);
-    }
-
-    if (hasRegister == false) {
-      fields.push((macro class {
-        public function register(container:capsule.Container) {}
       }).fields[0]);
     }
 
@@ -91,13 +83,23 @@ class Module {
           Context.error('Invalid expression for imports', e.pos);
       }
 
-      case macro providers = ${e}:
+      case macro mappings = ${e}:
         function add(decl:Expr, tag:Expr) {
-          // todo: this needs to be rethought
-          if (Context.unify(Context.typeof(decl), Context.getType('capsule.ServiceProvider'))) {
-            providers.push(macro @:pos(decl.pos) container.use(${decl}));
-          } else {
-            providers.push(macro @:pos(decl.pos) container.map(${decl}, ${tag}).toClass(${decl}).asShared());
+          decl = switch decl {
+            case macro ( ${decl} ): decl;
+            default: decl;
+          }
+          switch decl {
+            case macro ${decl} => ${factory}: switch factory {
+              case macro @:toValue ${value}:
+                mappings.push(macro @:pos(decl.pos) container.map(${decl}, ${tag}).toValue(${value}));
+              case macro @:toFactory ${factory}:
+                mappings.push(macro @:pos(decl.pos) container.map(${decl}, ${tag}).toFactory(${factory}).asShared());
+              default:
+                mappings.push(macro @:pos(decl.pos) container.map(${decl}, ${tag}).toClass(${factory}).asShared());
+            }
+            default:
+              mappings.push(macro @:pos(decl.pos) container.map(${decl}, ${tag}).toClass(${decl}).asShared());
           }
         }
 
@@ -107,6 +109,18 @@ class Module {
               case macro @:tag(${tag}) ${def}: add(def, tag);
               default: add(decl, macro null); 
             }
+          default:
+            Context.error('Invalid expression for mappings', e.pos);
+        }
+
+      case macro providers = ${e}:
+        function add(decl:Expr) {
+          mappings.push(macro @:pos(decl.pos) container.use(${decl}));
+        }
+
+        switch e.expr {
+          case EArrayDecl(decls):
+            for (decl in decls) add(decl);
           default:
             Context.error('Invalid expression for providers', e.pos);
         }
@@ -143,8 +157,7 @@ class Module {
       public function build() {
         if (__c != null) return __c;
         var container = new capsule.Container();
-        container.useServiceProvider(this);
-        $b{providers};
+        $b{mappings};
         $b{imports};
         __c = container;
         return container;

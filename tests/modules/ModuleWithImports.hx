@@ -8,7 +8,7 @@ import services.*;
     SimpleModule,
     ModuleWithServiceProvider
   ],
-  providers = [ FooBarService ],
+  mappings = [ FooBarService ],
   exports = [ 
     FooBarService,
     FooService,

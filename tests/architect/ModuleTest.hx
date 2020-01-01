@@ -32,10 +32,12 @@ class ModuleTest {
     container.get(String, 'foo').equals('foo');
   }
 
-  @test('Modules act like service providers')
+  @test('Modules can do complex mappings')
   public function testRegister() {
-    var module = new ModuleAsServiceProvider('foo');
+    var module = new ModuleWithSpecificMappings('foo');
     module.build().get(String, 'foo').equals('foo');
+    module.build().get(String).equals('no tag');
+    module.build().get(StringService).getString().equals('bar');
   }
 
 }
